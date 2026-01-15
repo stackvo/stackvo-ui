@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  stackvo-ui:
+    image: stackvo/stackvo-ui:latest
+    container_name: stackvo-ui
+    restart: unless-stopped
+
+    ports:
+      - "80:80"
+
+    volumes:
+      # Required: Docker socket for API access
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Optional: Mount your project directories
+      # - ./projects:/app/projects:rw
+
+      # Optional: Mount generated configs
+      # - ./generated:/app/generated:rw
+
+      # Optional: Mount logs
+      # - ./logs:/app/logs:rw
+
+    environment:
+      # Node.js environment
+      NODE_ENV: production
+      # Stackvo directories (optional, defaults shown)
+      # STACKVO_ROOT: /app
+      # PROJECTS_DIR: /app/projects
+      # GENERATED_DIR: /app/generated
+
+      # Host user/group IDs for file ownership (optional)
+      # HOST_UID: 1000
+      # HOST_GID: 1000
+
+      # Optional: Add to existing network
+      # networks:
+      #   - stackvo-net
+
+      # Optional: Define network
+      # networks:
+      #   stackvo-net:
+      #     name: stackvo-net
+      #     driver: bridge

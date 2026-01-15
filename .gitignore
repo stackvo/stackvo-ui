@@ -1,0 +1,23 @@
+# Node
+node_modules/
+npm-debug.log
+.npm
+
+# Build
+dist/
+
+# Logs
+logs/
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+
+# Env
+.env
+.env.local
