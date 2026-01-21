@@ -1402,42 +1402,25 @@ class DockerService {
         }
       }
 
-      // 3. Stop and remove tools container (if running)
+      // 3. Restart tools container with --profile to trigger entrypoint.sh
+      // Note: We use --profile tools because stackvo-tools has profiles: ["services", "tools"]
+      // Docker Hub image (stackvo/tools:latest) uses runtime installation in entrypoint.sh
+      console.log("Restarting tools container...");
       try {
-        const container = this.docker.getContainer(containerName);
-
-        try {
-          await container.stop();
-          console.log(`Container ${containerName} stopped`);
-        } catch (stopError) {
-          console.log(`Container ${containerName} already stopped`);
-        }
-
-        await container.remove();
-        console.log(`Container ${containerName} removed`);
-      } catch (containerError) {
-        console.warn(
-          `Could not remove container ${containerName}:`,
-          containerError.message
+        const { stdout: restartStdout } = await execAsync(
+          "docker compose -f generated/stackvo.yml -f generated/docker-compose.dynamic.yml --profile tools restart stackvo-tools 2>&1",
+          { cwd: rootDir }
         );
+        console.log("Restart stdout:", restartStdout);
+      } catch (restartError) {
+        // If container doesn't exist, start it
+        console.log("Container not running, starting fresh...");
+        const { stdout: upStdout } = await execAsync(
+          "docker compose -f generated/stackvo.yml -f generated/docker-compose.dynamic.yml --profile tools up -d stackvo-tools 2>&1",
+          { cwd: rootDir }
+        );
+        console.log("Up stdout:", upStdout);
       }
-
-      // 4. Rebuild tools container
-      // Note: Template path is fixed to ./tools so context resolves correctly inside generated dir
-      console.log("Rebuilding tools container...");
-      const { stdout: buildStdout } = await execAsync(
-        "docker-compose --env-file .env -f generated/stackvo.yml -f generated/docker-compose.dynamic.yml build stackvo-tools",
-        { cwd: rootDir }
-      );
-      console.log("Build stdout:", buildStdout);
-
-      // 5. Start tools container
-      console.log("Starting tools container...");
-      const { stdout: upStdout } = await execAsync(
-        "docker-compose --env-file .env -f generated/stackvo.yml -f generated/docker-compose.dynamic.yml up -d stackvo-tools",
-        { cwd: rootDir }
-      );
-      console.log("Up stdout:", upStdout);
 
       // 6. Clear cache
       this.cache.flushAll();
@@ -1502,51 +1485,19 @@ class DockerService {
         }
       }
 
-      // 3. Stop and remove tools container (if running)
+      // 3. Restart tools container with --profile to trigger entrypoint.sh
+      // Note: We use --profile tools because stackvo-tools has profiles: ["services", "tools"]
+      // Docker Hub image (stackvo/tools:latest) uses runtime installation in entrypoint.sh
+      console.log("Restarting tools container...");
       try {
-        const container = this.docker.getContainer(containerName);
-
-        try {
-          await container.stop();
-          console.log(`Container ${containerName} stopped`);
-        } catch (stopError) {
-          console.log(`Container ${containerName} already stopped`);
-        }
-
-        await container.remove();
-        console.log(`Container ${containerName} removed`);
-      } catch (containerError) {
-        console.warn(
-          `Could not remove container ${containerName}:`,
-          containerError.message
+        const { stdout: restartStdout } = await execAsync(
+          "docker compose -f generated/stackvo.yml -f generated/docker-compose.dynamic.yml --profile tools restart stackvo-tools 2>&1",
+          { cwd: rootDir }
         );
-      }
-
-      // 4. Checking if any other tools enabled. If so, rebuild and start.
-      // For now, simpler approach: rebuild and start if tools service is still in compose file.
-      // If no tools enabled, "generate" should have removed stackvo-tools from docker-compose.dynamic.yml
-      // However, we can try to build/up anyway. If service missing, it might warn/error or ignore.
-      
-      // Let's check environment variable from process? No, EnvService updated file but process.env not reloaded here.
-      // But we can blindly run compose up provided generate was correct.
-      
-      console.log("Rebuilding and restarting tools container (if still enabled)...");
-      try {
-          const { stdout: buildStdout } = await execAsync(
-            "docker-compose --env-file .env -f generated/stackvo.yml -f generated/docker-compose.dynamic.yml build stackvo-tools",
-            { cwd: rootDir }
-          );
-          console.log("Build stdout:", buildStdout);
-          
-          const { stdout: upStdout } = await execAsync(
-            "docker-compose --env-file .env -f generated/stackvo.yml -f generated/docker-compose.dynamic.yml up -d stackvo-tools",
-            { cwd: rootDir }
-          );
-          console.log("Up stdout:", upStdout);
-      } catch (composeError) {
-          // If no services enabled, this might fail or warn.
-          // If the service 'stackvo-tools' is removed from dynamic yaml, it will say "no such service: stackvo-tools"
-          console.log("Compose command output (might be empty/error if no tools enabled):", composeError.message);
+        console.log("Restart stdout:", restartStdout);
+      } catch (restartError) {
+        // If container doesn't exist or all tools disabled, this is expected
+        console.log("Container restart failed (might be expected if all tools disabled):", restartError.message);
       }
 
       // 5. Clear cache
