@@ -31,12 +31,41 @@ router.get('/', async (req, res) => {
 router.post('/:containerName/start', async (req, res) => {
   try {
     const { containerName } = req.params;
+    const io = req.app.get('io');
+    
+    // Extract tool name from container name (remove 'stackvo-' prefix)
+    const toolName = containerName.replace('stackvo-', '');
+    
+    // Emit starting event
+    if (io) {
+      io.emit('tool:starting', { tool: toolName });
+    }
+    
     const result = await dockerService.startContainer(containerName);
+    
+    // Emit success event
+    if (io) {
+      io.emit('tool:started', { 
+        tool: toolName,
+        running: true
+      });
+    }
+    
     res.json({
       success: true,
       message: result.message
     });
   } catch (error) {
+    // Emit error event
+    const io = req.app.get('io');
+    const toolName = req.params.containerName.replace('stackvo-', '');
+    if (io) {
+      io.emit('tool:error', { 
+        tool: toolName,
+        error: error.message
+      });
+    }
+    
     res.status(500).json({
       success: false,
       message: error.message
@@ -51,12 +80,41 @@ router.post('/:containerName/start', async (req, res) => {
 router.post('/:containerName/stop', async (req, res) => {
   try {
     const { containerName } = req.params;
+    const io = req.app.get('io');
+    
+    // Extract tool name from container name (remove 'stackvo-' prefix)
+    const toolName = containerName.replace('stackvo-', '');
+    
+    // Emit stopping event
+    if (io) {
+      io.emit('tool:stopping', { tool: toolName });
+    }
+    
     const result = await dockerService.stopContainer(containerName);
+    
+    // Emit success event
+    if (io) {
+      io.emit('tool:stopped', { 
+        tool: toolName,
+        running: false
+      });
+    }
+    
     res.json({
       success: true,
       message: result.message
     });
   } catch (error) {
+    // Emit error event
+    const io = req.app.get('io');
+    const toolName = req.params.containerName.replace('stackvo-', '');
+    if (io) {
+      io.emit('tool:error', { 
+        tool: toolName,
+        error: error.message
+      });
+    }
+    
     res.status(500).json({
       success: false,
       message: error.message
@@ -71,12 +129,41 @@ router.post('/:containerName/stop', async (req, res) => {
 router.post('/:containerName/restart', async (req, res) => {
   try {
     const { containerName } = req.params;
+    const io = req.app.get('io');
+    
+    // Extract tool name from container name (remove 'stackvo-' prefix)
+    const toolName = containerName.replace('stackvo-', '');
+    
+    // Emit restarting event
+    if (io) {
+      io.emit('tool:restarting', { tool: toolName });
+    }
+    
     const result = await dockerService.restartContainer(containerName);
+    
+    // Emit success event
+    if (io) {
+      io.emit('tool:restarted', { 
+        tool: toolName,
+        running: true
+      });
+    }
+    
     res.json({
       success: true,
       message: result.message
     });
   } catch (error) {
+    // Emit error event
+    const io = req.app.get('io');
+    const toolName = req.params.containerName.replace('stackvo-', '');
+    if (io) {
+      io.emit('tool:error', { 
+        tool: toolName,
+        error: error.message
+      });
+    }
+    
     res.status(500).json({
       success: false,
       message: error.message

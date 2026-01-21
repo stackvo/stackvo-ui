@@ -1108,7 +1108,7 @@ class DockerService {
       console.log(`Building and starting service: ${serviceName}`);
       console.log(`Using working directory: ${rootDir}`); // Using container path for execution context
       const upResult = await execAsync(
-        `docker-compose -f generated/stackvo.yml -f generated/docker-compose.dynamic.yml --profile ${serviceName} up -d --build ${serviceName} 2>&1`,
+        `docker-compose --env-file .env -f generated/stackvo.yml -f generated/docker-compose.dynamic.yml --profile ${serviceName} up -d --build ${serviceName} 2>&1`,
         { cwd: rootDir }
       );
 
@@ -1426,7 +1426,7 @@ class DockerService {
       // Note: Template path is fixed to ./tools so context resolves correctly inside generated dir
       console.log("Rebuilding tools container...");
       const { stdout: buildStdout } = await execAsync(
-        "docker-compose -f generated/stackvo.yml -f generated/docker-compose.dynamic.yml build stackvo-tools",
+        "docker-compose --env-file .env -f generated/stackvo.yml -f generated/docker-compose.dynamic.yml build stackvo-tools",
         { cwd: rootDir }
       );
       console.log("Build stdout:", buildStdout);
@@ -1434,7 +1434,7 @@ class DockerService {
       // 5. Start tools container
       console.log("Starting tools container...");
       const { stdout: upStdout } = await execAsync(
-        "docker-compose -f generated/stackvo.yml -f generated/docker-compose.dynamic.yml up -d stackvo-tools",
+        "docker-compose --env-file .env -f generated/stackvo.yml -f generated/docker-compose.dynamic.yml up -d stackvo-tools",
         { cwd: rootDir }
       );
       console.log("Up stdout:", upStdout);
@@ -1533,13 +1533,13 @@ class DockerService {
       console.log("Rebuilding and restarting tools container (if still enabled)...");
       try {
           const { stdout: buildStdout } = await execAsync(
-            "docker-compose -f generated/stackvo.yml -f generated/docker-compose.dynamic.yml build stackvo-tools",
+            "docker-compose --env-file .env -f generated/stackvo.yml -f generated/docker-compose.dynamic.yml build stackvo-tools",
             { cwd: rootDir }
           );
           console.log("Build stdout:", buildStdout);
           
           const { stdout: upStdout } = await execAsync(
-            "docker-compose -f generated/stackvo.yml -f generated/docker-compose.dynamic.yml up -d stackvo-tools",
+            "docker-compose --env-file .env -f generated/stackvo.yml -f generated/docker-compose.dynamic.yml up -d stackvo-tools",
             { cwd: rootDir }
           );
           console.log("Up stdout:", upStdout);

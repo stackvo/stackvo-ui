@@ -344,6 +344,87 @@ onMounted(async () => {
   socket.value.on("tool:error", (data) => {
     console.error("Tool error:", data.tool, data.error);
   });
+  
+  // START/STOP/RESTART events
+  socket.value.on("tool:starting", (data) => {
+    console.log("Tool starting:", data.tool);
+    showProgress.value = true;
+    progressOperation.value = "Starting";
+    progressTool.value = data.tool;
+    progressSteps.value = [
+      { message: "Starting tool container...", status: "running" },
+    ];
+  });
+  
+  socket.value.on("tool:started", (data) => {
+    console.log("Tool started:", data.tool);
+    progressSteps.value = [
+      { message: "Starting tool container...", status: "done" },
+    ];
+    
+    // Close dialog immediately
+    showProgress.value = false;
+    progressSteps.value = [];
+    
+    // Wait for dialog to disappear, then reload tools
+    nextTick(async () => {
+      await toolsStore.loadTools();
+    });
+  });
+  
+  socket.value.on("tool:stopping", (data) => {
+    console.log("Tool stopping:", data.tool);
+    showProgress.value = true;
+    progressOperation.value = "Stopping";
+    progressTool.value = data.tool;
+    progressSteps.value = [
+      { message: "Stopping tool container...", status: "running" },
+    ];
+  });
+  
+  socket.value.on("tool:stopped", (data) => {
+    console.log("Tool stopped:", data.tool);
+    progressSteps.value = [
+      { message: "Stopping tool container...", status: "done" },
+    ];
+    
+    // Close dialog immediately
+    showProgress.value = false;
+    progressSteps.value = [];
+    
+    // Wait for dialog to disappear, then reload tools
+    nextTick(async () => {
+      await toolsStore.loadTools();
+    });
+  });
+  
+  socket.value.on("tool:restarting", (data) => {
+    console.log("Tool restarting:", data.tool);
+    showProgress.value = true;
+    progressOperation.value = "Restarting";
+    progressTool.value = data.tool;
+    progressSteps.value = [
+      { message: "Stopping tool container...", status: "running" },
+      { message: "Starting tool container...", status: "pending" },
+    ];
+  });
+  
+  socket.value.on("tool:restarted", (data) => {
+    console.log("Tool restarted:", data.tool);
+    progressSteps.value = [
+      { message: "Stopping tool container...", status: "done" },
+      { message: "Starting tool container...", status: "done" },
+    ];
+    
+    // Close dialog immediately
+    showProgress.value = false;
+    progressSteps.value = [];
+    
+    // Wait for dialog to disappear, then reload tools
+    nextTick(async () => {
+      await toolsStore.loadTools();
+    });
+  });
 });
 
 onUnmounted(() => {
