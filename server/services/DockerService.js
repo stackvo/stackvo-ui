@@ -1479,14 +1479,29 @@ class DockerService {
         }
       }
 
-      console.log(`[TOOL ${toolName.toUpperCase()}] Step 3: Recreating container with --force-recreate`);
+      console.log(`[TOOL ${toolName.toUpperCase()}] Step 3: Recreating container (down + up)`);
       // 3. Recreate tools container with updated environment variables
-      // Use --force-recreate to ensure environment variables are updated
+      // CRITICAL: We MUST use down + up instead of --force-recreate
+      // Reason: --force-recreate does NOT reload .env file, it uses cached environment variables
       // We use --profile tools because stackvo-tools has profiles: ["services", "tools"]
-      console.log("Recreating tools container with updated environment...");
+      console.log("Stopping and removing tools container...");
 
+      try {
+        const envFile = path.join(rootDir, '.env');
+        const { stdout: downStdout } = await execAsync(
+          `docker compose --env-file "${envFile}" -f generated/stackvo.yml -f generated/docker-compose.dynamic.yml --profile tools down stackvo-tools 2>&1`,
+          { cwd: rootDir }
+        );
+        console.log("Down stdout:", downStdout);
+      } catch (downError) {
+        // Container might not exist, that's okay
+        console.log("Down failed (might be expected):", downError.message);
+      }
+
+      console.log("Starting tools container with fresh environment variables...");
+      const envFile = path.join(rootDir, '.env');
       const { stdout: upStdout } = await execAsync(
-        "docker compose --env-file .env -f generated/stackvo.yml -f generated/docker-compose.dynamic.yml --profile tools up -d --force-recreate stackvo-tools 2>&1",
+        `docker compose --env-file "${envFile}" -f generated/stackvo.yml -f generated/docker-compose.dynamic.yml --profile tools up -d stackvo-tools 2>&1`,
         { cwd: rootDir }
       );
       console.log("Up stdout:", upStdout);
@@ -1498,8 +1513,9 @@ class DockerService {
       console.log(`[TOOL ${toolName.toUpperCase()}] Step 5: Reloading Traefik`);
       // 5. Reload Traefik to ensure routing is updated
       try {
+        const envFile = path.join(rootDir, '.env');
         const { stdout: traefikStdout } = await execAsync(
-          "docker compose --env-file .env -f generated/stackvo.yml restart traefik 2>&1",
+          `docker compose --env-file "${envFile}" -f generated/stackvo.yml restart traefik 2>&1`,
           { cwd: rootDir }
         );
         console.log("Traefik restart stdout:", traefikStdout);
@@ -1578,9 +1594,10 @@ class DockerService {
         }
       }
 
-      console.log(`[TOOL ${toolName.toUpperCase()}] Step 3: Recreating container with --force-recreate`);
+      console.log(`[TOOL ${toolName.toUpperCase()}] Step 3: Recreating container (down + up)`);
       // 3. Recreate tools container with updated environment variables
-      // Use --force-recreate to ensure environment variables are updated
+      // CRITICAL: We MUST use down + up instead of --force-recreate
+      // Reason: --force-recreate does NOT reload .env file, it uses cached environment variables
       // We use --profile tools because stackvo-tools has profiles: ["services", "tools"]
       console.log("Recreating tools container with updated environment...");
 
@@ -1592,9 +1609,24 @@ class DockerService {
       const enabledTools = [...envContent.matchAll(toolRegex)];
 
       if (enabledTools.length > 0) {
-        // Some tools still enabled, recreate container
+        // Some tools still enabled, recreate container with down + up
+        console.log("Stopping and removing tools container...");
+        try {
+          const envFile = path.join(rootDir, '.env');
+          const { stdout: downStdout } = await execAsync(
+            `docker compose --env-file "${envFile}" -f generated/stackvo.yml -f generated/docker-compose.dynamic.yml --profile tools down stackvo-tools 2>&1`,
+            { cwd: rootDir }
+          );
+          console.log("Down stdout:", downStdout);
+        } catch (downError) {
+          // Container might not exist, that's okay
+          console.log("Down failed (might be expected):", downError.message);
+        }
+
+        console.log("Starting tools container with fresh environment variables...");
+        const envFile = path.join(rootDir, '.env');
         const { stdout: upStdout } = await execAsync(
-          "docker compose --env-file .env -f generated/stackvo.yml -f generated/docker-compose.dynamic.yml --profile tools up -d --force-recreate stackvo-tools 2>&1",
+          `docker compose --env-file "${envFile}" -f generated/stackvo.yml -f generated/docker-compose.dynamic.yml --profile tools up -d stackvo-tools 2>&1`,
           { cwd: rootDir }
         );
         console.log("Up stdout:", upStdout);
@@ -1606,8 +1638,9 @@ class DockerService {
         console.log(`[TOOL ${toolName.toUpperCase()}] Step 5: Reloading Traefik`);
         // Reload Traefik to ensure routing is updated
         try {
+          const envFile = path.join(rootDir, '.env');
           const { stdout: traefikStdout } = await execAsync(
-            "docker compose --env-file .env -f generated/stackvo.yml restart traefik 2>&1",
+            `docker compose --env-file "${envFile}" -f generated/stackvo.yml restart traefik 2>&1`,
             { cwd: rootDir }
           );
           console.log("Traefik restart stdout:", traefikStdout);
@@ -1619,8 +1652,9 @@ class DockerService {
         // All tools disabled, stop the container
         console.log("All tools disabled, stopping container...");
         try {
+          const envFile = path.join(rootDir, '.env');
           const { stdout: downStdout } = await execAsync(
-            "docker compose --env-file .env -f generated/stackvo.yml -f generated/docker-compose.dynamic.yml --profile tools down stackvo-tools 2>&1",
+            `docker compose --env-file "${envFile}" -f generated/stackvo.yml -f generated/docker-compose.dynamic.yml --profile tools down stackvo-tools 2>&1`,
             { cwd: rootDir }
           );
           console.log("Down stdout:", downStdout);
