@@ -1479,27 +1479,27 @@ class DockerService {
         }
       }
 
-      console.log(`[TOOL ${toolName.toUpperCase()}] Step 3: Recreating container (down + up)`);
+      console.log(`[TOOL ${toolName.toUpperCase()}] Step 3: Recreating container (rm + up)`);
       // 3. Recreate tools container with updated environment variables
-      // CRITICAL: We MUST use down + up instead of --force-recreate
-      // Reason: --force-recreate does NOT reload .env file, it uses cached environment variables
+      // CRITICAL: We use rm + up to reload environment variables
+      // --force-recreate does NOT work (tested - env vars not updated)
+      // rm removes container but preserves volume (tools are not re-downloaded)
       // We use --profile tools because stackvo-tools has profiles: ["services", "tools"]
-      console.log("Stopping and removing tools container...");
+      console.log("Removing tools container...");
 
+      const envFile = path.join(rootDir, '.env');
       try {
-        const envFile = path.join(rootDir, '.env');
-        const { stdout: downStdout } = await execAsync(
-          `docker compose --env-file "${envFile}" -f generated/stackvo.yml -f generated/docker-compose.dynamic.yml --profile tools down stackvo-tools 2>&1`,
+        const { stdout: rmStdout } = await execAsync(
+          `docker compose --env-file "${envFile}" -f generated/stackvo.yml -f generated/docker-compose.dynamic.yml rm -sf stackvo-tools 2>&1`,
           { cwd: rootDir }
         );
-        console.log("Down stdout:", downStdout);
-      } catch (downError) {
+        console.log("Rm stdout:", rmStdout);
+      } catch (rmError) {
         // Container might not exist, that's okay
-        console.log("Down failed (might be expected):", downError.message);
+        console.log("Rm failed (might be expected):", rmError.message);
       }
 
       console.log("Starting tools container with fresh environment variables...");
-      const envFile = path.join(rootDir, '.env');
       const { stdout: upStdout } = await execAsync(
         `docker compose --env-file "${envFile}" -f generated/stackvo.yml -f generated/docker-compose.dynamic.yml --profile tools up -d stackvo-tools 2>&1`,
         { cwd: rootDir }
@@ -1609,22 +1609,22 @@ class DockerService {
       const enabledTools = [...envContent.matchAll(toolRegex)];
 
       if (enabledTools.length > 0) {
-        // Some tools still enabled, recreate container with down + up
-        console.log("Stopping and removing tools container...");
+        // Some tools still enabled, recreate container with rm + up
+        console.log("Removing tools container...");
+
+        const envFile = path.join(rootDir, '.env');
         try {
-          const envFile = path.join(rootDir, '.env');
-          const { stdout: downStdout } = await execAsync(
-            `docker compose --env-file "${envFile}" -f generated/stackvo.yml -f generated/docker-compose.dynamic.yml --profile tools down stackvo-tools 2>&1`,
+          const { stdout: rmStdout } = await execAsync(
+            `docker compose --env-file "${envFile}" -f generated/stackvo.yml -f generated/docker-compose.dynamic.yml rm -sf stackvo-tools 2>&1`,
             { cwd: rootDir }
           );
-          console.log("Down stdout:", downStdout);
-        } catch (downError) {
+          console.log("Rm stdout:", rmStdout);
+        } catch (rmError) {
           // Container might not exist, that's okay
-          console.log("Down failed (might be expected):", downError.message);
+          console.log("Rm failed (might be expected):", rmError.message);
         }
 
         console.log("Starting tools container with fresh environment variables...");
-        const envFile = path.join(rootDir, '.env');
         const { stdout: upStdout } = await execAsync(
           `docker compose --env-file "${envFile}" -f generated/stackvo.yml -f generated/docker-compose.dynamic.yml --profile tools up -d stackvo-tools 2>&1`,
           { cwd: rootDir }
@@ -1649,7 +1649,6 @@ class DockerService {
           console.warn("Traefik restart failed (might be expected):", traefikError.message);
         }
       } else {
-        // All tools disabled, stop the container
         console.log("All tools disabled, stopping container...");
         try {
           const envFile = path.join(rootDir, '.env');
