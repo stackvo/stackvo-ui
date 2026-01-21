@@ -184,11 +184,11 @@ class DockerService {
     try {
       const containerName = `stackvo-${serviceName}`;
       const containers = await this.docker.listContainers({ all: true });
-      
+
       const container = containers.find(
         (c) => c.Names[0] === `/${containerName}` || c.Names[0].includes(containerName)
       );
-      
+
       return container ? container.State === 'running' : false;
     } catch (error) {
       console.error(`Error checking service ${serviceName}:`, error.message);
@@ -423,19 +423,19 @@ class DockerService {
 
       const logs = running
         ? {
-            web_access: {
-              container_path: `${webLogBase}/access.log`,
-              host_path: `logs/projects/${projectName}/access.log`,
-            },
-            web_error: {
-              container_path: `${webLogBase}/error.log`,
-              host_path: `logs/projects/${projectName}/error.log`,
-            },
-            php_error: {
-              container_path: `${phpLogBase}/php-error.log`,
-              host_path: `logs/projects/${projectName}/php-error.log`,
-            },
-          }
+          web_access: {
+            container_path: `${webLogBase}/access.log`,
+            host_path: `logs/projects/${projectName}/access.log`,
+          },
+          web_error: {
+            container_path: `${webLogBase}/error.log`,
+            host_path: `logs/projects/${projectName}/error.log`,
+          },
+          php_error: {
+            container_path: `${phpLogBase}/php-error.log`,
+            host_path: `logs/projects/${projectName}/php-error.log`,
+          },
+        }
         : null;
 
       // Check for custom configuration files in .stackvo directory
@@ -799,7 +799,7 @@ class DockerService {
         const output = data.toString();
         buildOutput += output;
         console.log(output);
-        
+
         if (io) {
           io.emit("build:progress", {
             project: projectName,
@@ -814,7 +814,7 @@ class DockerService {
         const output = data.toString();
         buildError += output;
         console.error(output);
-        
+
         if (io) {
           io.emit("build:progress", {
             project: projectName,
@@ -865,7 +865,7 @@ class DockerService {
         const output = data.toString();
         upOutput += output;
         console.log(output);
-        
+
         if (io) {
           io.emit("build:progress", {
             project: projectName,
@@ -879,7 +879,7 @@ class DockerService {
         const output = data.toString();
         upError += output;
         console.error(output);
-        
+
         if (io) {
           io.emit("build:progress", {
             project: projectName,
@@ -977,18 +977,18 @@ class DockerService {
     // Helper to emit progress
     const emitProgress = (step, status, message) => {
       if (io) {
-        io.emit('service:progress', { 
-          service: serviceName, 
-          step, 
-          status, 
-          message 
+        io.emit('service:progress', {
+          service: serviceName,
+          step,
+          status,
+          message
         });
       }
     };
 
     try {
       emitProgress('dependency', 'running', 'Checking dependencies...');
-      
+
       // 0. Check and auto-start required dependencies
       const configPath = path.join(process.cwd(), 'config', 'serviceDependencies.json');
       let dependencies = {};
@@ -1001,11 +1001,11 @@ class DockerService {
       }
 
       const serviceDeps = dependencies[serviceName] || { required: [], optional: [] };
-      
+
       // Auto-start required dependencies
       if (serviceDeps.required && serviceDeps.required.length > 0) {
         console.log(`Checking required dependencies for ${serviceName}:`, serviceDeps.required);
-        
+
         for (const dep of serviceDeps.required) {
           const isRunning = await this.isServiceRunning(dep);
           if (!isRunning) {
@@ -1031,7 +1031,7 @@ class DockerService {
       try {
         await fs.mkdir(logDir, { recursive: true });
         console.log(`Created log directory: ${logDir}`);
-        
+
         // Set permissions to 777 so container can write logs
         try {
           await fs.chmod(logDir, 0o777);
@@ -1088,7 +1088,7 @@ class DockerService {
         console.log(`Removing existing container: ${containerName}`);
         await execAsync(`docker rm -f ${containerName} 2>/dev/null || true`, { cwd: rootDir });
         console.log(`Removed existing container: ${containerName}`);
-        
+
         // Special case: Kafka also has zookeeper container
         if (serviceName === 'kafka') {
           console.log(`Removing zookeeper container`);
@@ -1156,11 +1156,11 @@ class DockerService {
     // Helper to emit progress
     const emitProgress = (step, status, message) => {
       if (io) {
-        io.emit('service:progress', { 
-          service: serviceName, 
-          step, 
-          status, 
-          message 
+        io.emit('service:progress', {
+          service: serviceName,
+          step,
+          status,
+          message
         });
       }
     };
@@ -1209,14 +1209,14 @@ class DockerService {
       if (serviceName === 'kafka') {
         try {
           const zookeeperContainer = this.docker.getContainer('stackvo-zookeeper');
-          
+
           try {
             await zookeeperContainer.stop();
             console.log(`Zookeeper container stopped`);
           } catch (stopError) {
             console.log(`Zookeeper container already stopped or not running`);
           }
-          
+
           await zookeeperContainer.remove();
           console.log(`Zookeeper container removed`);
         } catch (zookeeperError) {
@@ -1363,6 +1363,81 @@ class DockerService {
   }
 
   /**
+   * Wait for container to be healthy
+   * @param {string} containerName - Container name
+   * @param {number} timeout - Timeout in milliseconds
+   * @returns {Promise<boolean>}
+   */
+  async waitForContainerHealthy(containerName, timeout = 30000) {
+    const startTime = Date.now();
+
+    while (Date.now() - startTime < timeout) {
+      try {
+        const container = this.docker.getContainer(containerName);
+        const inspect = await container.inspect();
+
+        if (inspect.State.Running) {
+          console.log(`Container ${containerName} is healthy and running`);
+          return true;
+        }
+      } catch (error) {
+        // Container not found yet, continue waiting
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+
+    throw new Error(`Container ${containerName} did not become healthy within ${timeout}ms`);
+  }
+
+  /**
+   * Wait for tool URL to be accessible via Traefik
+   * @param {string} toolName - Tool name
+   * @param {number} timeout - Timeout in milliseconds
+   * @returns {Promise<boolean>}
+   */
+  async waitForToolUrl(toolName, timeout = 30000) {
+    const https = await import('https');
+    const http = await import('http');
+    const url = `https://${toolName}.stackvo.loc`;
+    const startTime = Date.now();
+
+    while (Date.now() - startTime < timeout) {
+      try {
+        // Try to make a HEAD request to the URL
+        await new Promise((resolve, reject) => {
+          const req = https.request(url, {
+            method: 'HEAD',
+            rejectUnauthorized: false, // Ignore self-signed cert errors
+            timeout: 2000
+          }, (res) => {
+            // Any response (even 404) means Traefik routing is working
+            if (res.statusCode) {
+              resolve(true);
+            } else {
+              reject(new Error('No status code'));
+            }
+          });
+
+          req.on('error', reject);
+          req.end();
+        });
+
+        console.log(`Tool URL ${url} is accessible`);
+        return true;
+      } catch (error) {
+        // URL not accessible yet, continue waiting
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+
+    // Don't throw error, just warn - URL might still work
+    console.warn(`Tool URL ${url} not accessible within ${timeout}ms (might still work)`);
+    return false;
+  }
+
+  /**
    * Enable a tool (requires tools container rebuild)
    * @param {string} toolName - Tool name
    * @param {Object} envService - EnvService instance
@@ -1376,10 +1451,12 @@ class DockerService {
       const containerName = "stackvo-tools";
       const rootDir = process.env.STACKVO_ROOT || path.join(process.cwd(), "..", "..");
 
+      console.log(`[TOOL ${toolName.toUpperCase()}] Step 1: Updating .env file`);
       // 1. Update .env file
       await envService.updateToolEnable(toolName, true);
       console.log(`Updated .env: TOOLS_${toolName.toUpperCase()}_ENABLE=true`);
 
+      console.log(`[TOOL ${toolName.toUpperCase()}] Step 2: Regenerating templates`);
       // 2. Regenerate templates
       const cliScript = path.join(rootDir, 'core', 'cli', 'stackvo.sh');
       console.log(`Running: ${cliScript} generate`);
@@ -1402,33 +1479,43 @@ class DockerService {
         }
       }
 
+      console.log(`[TOOL ${toolName.toUpperCase()}] Step 3: Recreating container with --force-recreate`);
       // 3. Recreate tools container with updated environment variables
-      // Note: We use down + up instead of restart because restart doesn't update environment variables
+      // Use --force-recreate to ensure environment variables are updated
       // We use --profile tools because stackvo-tools has profiles: ["services", "tools"]
-      // Docker Hub image (stackvo/tools:latest) uses runtime installation in entrypoint.sh
       console.log("Recreating tools container with updated environment...");
-      try {
-        // First, stop and remove the container
-        const { stdout: downStdout } = await execAsync(
-          "docker compose --env-file .env -f generated/stackvo.yml -f generated/docker-compose.dynamic.yml --profile tools down stackvo-tools 2>&1",
-          { cwd: rootDir }
-        );
-        console.log("Down stdout:", downStdout);
-      } catch (downError) {
-        // Container might not exist, that's okay
-        console.log("Down failed (might be expected):", downError.message);
-      }
-      
-      // Then, start with new environment variables
+
       const { stdout: upStdout } = await execAsync(
-        "docker compose --env-file .env -f generated/stackvo.yml -f generated/docker-compose.dynamic.yml --profile tools up -d stackvo-tools 2>&1",
+        "docker compose --env-file .env -f generated/stackvo.yml -f generated/docker-compose.dynamic.yml --profile tools up -d --force-recreate stackvo-tools 2>&1",
         { cwd: rootDir }
       );
       console.log("Up stdout:", upStdout);
 
-      // 6. Clear cache
+      console.log(`[TOOL ${toolName.toUpperCase()}] Step 4: Waiting for container health`);
+      // 4. Wait for container to be healthy
+      await this.waitForContainerHealthy(containerName, 30000);
+
+      console.log(`[TOOL ${toolName.toUpperCase()}] Step 5: Reloading Traefik`);
+      // 5. Reload Traefik to ensure routing is updated
+      try {
+        const { stdout: traefikStdout } = await execAsync(
+          "docker compose --env-file .env -f generated/stackvo.yml restart traefik 2>&1",
+          { cwd: rootDir }
+        );
+        console.log("Traefik restart stdout:", traefikStdout);
+      } catch (traefikError) {
+        // Traefik restart might fail, but that's okay
+        console.warn("Traefik restart failed (might be expected):", traefikError.message);
+      }
+
+      console.log(`[TOOL ${toolName.toUpperCase()}] Step 6: Verifying URL accessibility`);
+      // 6. Wait for tool URL to be accessible (non-blocking)
+      await this.waitForToolUrl(toolName, 15000);
+
+      // 7. Clear cache
       this.cache.flushAll();
       console.log("Cache cleared");
+      console.log(`[TOOL ${toolName.toUpperCase()}] Successfully enabled!`);
 
       return {
         success: true,
@@ -1463,10 +1550,12 @@ class DockerService {
       const containerName = "stackvo-tools";
       const rootDir = process.env.STACKVO_ROOT || path.join(process.cwd(), "..", "..");
 
+      console.log(`[TOOL ${toolName.toUpperCase()}] Step 1: Updating .env file`);
       // 1. Update .env file
       await envService.updateToolEnable(toolName, false);
       console.log(`Updated .env: TOOLS_${toolName.toUpperCase()}_ENABLE=false`);
 
+      console.log(`[TOOL ${toolName.toUpperCase()}] Step 2: Regenerating templates`);
       // 2. Regenerate templates
       const cliScript = path.join(rootDir, 'core', 'cli', 'stackvo.sh');
       console.log(`Running: ${cliScript} generate`);
@@ -1489,38 +1578,62 @@ class DockerService {
         }
       }
 
+      console.log(`[TOOL ${toolName.toUpperCase()}] Step 3: Recreating container with --force-recreate`);
       // 3. Recreate tools container with updated environment variables
-      // Note: We use down + up instead of restart because restart doesn't update environment variables
+      // Use --force-recreate to ensure environment variables are updated
       // We use --profile tools because stackvo-tools has profiles: ["services", "tools"]
-      // Docker Hub image (stackvo/tools:latest) uses runtime installation in entrypoint.sh
       console.log("Recreating tools container with updated environment...");
-      try {
-        // First, stop and remove the container
-        const { stdout: downStdout } = await execAsync(
-          "docker compose --env-file .env -f generated/stackvo.yml -f generated/docker-compose.dynamic.yml --profile tools down stackvo-tools 2>&1",
-          { cwd: rootDir }
-        );
-        console.log("Down stdout:", downStdout);
-      } catch (downError) {
-        // Container might not exist, that's okay
-        console.log("Down failed (might be expected):", downError.message);
-      }
-      
-      // Then, start with new environment variables (if any tools still enabled)
-      try {
+
+      // Check if any tools are still enabled
+      const fs = await import("fs/promises");
+      const envPath = path.join(rootDir, ".env");
+      const envContent = await fs.readFile(envPath, "utf-8");
+      const toolRegex = /^TOOLS_([A-Z0-9_]+)_ENABLE=true/gm;
+      const enabledTools = [...envContent.matchAll(toolRegex)];
+
+      if (enabledTools.length > 0) {
+        // Some tools still enabled, recreate container
         const { stdout: upStdout } = await execAsync(
-          "docker compose --env-file .env -f generated/stackvo.yml -f generated/docker-compose.dynamic.yml --profile tools up -d stackvo-tools 2>&1",
+          "docker compose --env-file .env -f generated/stackvo.yml -f generated/docker-compose.dynamic.yml --profile tools up -d --force-recreate stackvo-tools 2>&1",
           { cwd: rootDir }
         );
         console.log("Up stdout:", upStdout);
-      } catch (upError) {
-        // If all tools disabled, this is expected
-        console.log("Up failed (might be expected if all tools disabled):", upError.message);
+
+        console.log(`[TOOL ${toolName.toUpperCase()}] Step 4: Waiting for container health`);
+        // Wait for container to be healthy
+        await this.waitForContainerHealthy(containerName, 30000);
+
+        console.log(`[TOOL ${toolName.toUpperCase()}] Step 5: Reloading Traefik`);
+        // Reload Traefik to ensure routing is updated
+        try {
+          const { stdout: traefikStdout } = await execAsync(
+            "docker compose --env-file .env -f generated/stackvo.yml restart traefik 2>&1",
+            { cwd: rootDir }
+          );
+          console.log("Traefik restart stdout:", traefikStdout);
+        } catch (traefikError) {
+          // Traefik restart might fail, but that's okay
+          console.warn("Traefik restart failed (might be expected):", traefikError.message);
+        }
+      } else {
+        // All tools disabled, stop the container
+        console.log("All tools disabled, stopping container...");
+        try {
+          const { stdout: downStdout } = await execAsync(
+            "docker compose --env-file .env -f generated/stackvo.yml -f generated/docker-compose.dynamic.yml --profile tools down stackvo-tools 2>&1",
+            { cwd: rootDir }
+          );
+          console.log("Down stdout:", downStdout);
+        } catch (downError) {
+          // Container might not exist, that's okay
+          console.log("Down failed (might be expected):", downError.message);
+        }
       }
 
-      // 5. Clear cache
+      // 6. Clear cache
       this.cache.flushAll();
       console.log("Cache cleared");
+      console.log(`[TOOL ${toolName.toUpperCase()}] Successfully disabled!`);
 
       return {
         success: true,
