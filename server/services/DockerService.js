@@ -1402,25 +1402,29 @@ class DockerService {
         }
       }
 
-      // 3. Restart tools container with --profile to trigger entrypoint.sh
-      // Note: We use --profile tools because stackvo-tools has profiles: ["services", "tools"]
+      // 3. Recreate tools container with updated environment variables
+      // Note: We use down + up instead of restart because restart doesn't update environment variables
+      // We use --profile tools because stackvo-tools has profiles: ["services", "tools"]
       // Docker Hub image (stackvo/tools:latest) uses runtime installation in entrypoint.sh
-      console.log("Restarting tools container...");
+      console.log("Recreating tools container with updated environment...");
       try {
-        const { stdout: restartStdout } = await execAsync(
-          "docker compose -f generated/stackvo.yml -f generated/docker-compose.dynamic.yml --profile tools restart stackvo-tools 2>&1",
+        // First, stop and remove the container
+        const { stdout: downStdout } = await execAsync(
+          "docker compose --env-file .env -f generated/stackvo.yml -f generated/docker-compose.dynamic.yml --profile tools down stackvo-tools 2>&1",
           { cwd: rootDir }
         );
-        console.log("Restart stdout:", restartStdout);
-      } catch (restartError) {
-        // If container doesn't exist, start it
-        console.log("Container not running, starting fresh...");
-        const { stdout: upStdout } = await execAsync(
-          "docker compose -f generated/stackvo.yml -f generated/docker-compose.dynamic.yml --profile tools up -d stackvo-tools 2>&1",
-          { cwd: rootDir }
-        );
-        console.log("Up stdout:", upStdout);
+        console.log("Down stdout:", downStdout);
+      } catch (downError) {
+        // Container might not exist, that's okay
+        console.log("Down failed (might be expected):", downError.message);
       }
+      
+      // Then, start with new environment variables
+      const { stdout: upStdout } = await execAsync(
+        "docker compose --env-file .env -f generated/stackvo.yml -f generated/docker-compose.dynamic.yml --profile tools up -d stackvo-tools 2>&1",
+        { cwd: rootDir }
+      );
+      console.log("Up stdout:", upStdout);
 
       // 6. Clear cache
       this.cache.flushAll();
@@ -1485,19 +1489,33 @@ class DockerService {
         }
       }
 
-      // 3. Restart tools container with --profile to trigger entrypoint.sh
-      // Note: We use --profile tools because stackvo-tools has profiles: ["services", "tools"]
+      // 3. Recreate tools container with updated environment variables
+      // Note: We use down + up instead of restart because restart doesn't update environment variables
+      // We use --profile tools because stackvo-tools has profiles: ["services", "tools"]
       // Docker Hub image (stackvo/tools:latest) uses runtime installation in entrypoint.sh
-      console.log("Restarting tools container...");
+      console.log("Recreating tools container with updated environment...");
       try {
-        const { stdout: restartStdout } = await execAsync(
-          "docker compose -f generated/stackvo.yml -f generated/docker-compose.dynamic.yml --profile tools restart stackvo-tools 2>&1",
+        // First, stop and remove the container
+        const { stdout: downStdout } = await execAsync(
+          "docker compose --env-file .env -f generated/stackvo.yml -f generated/docker-compose.dynamic.yml --profile tools down stackvo-tools 2>&1",
           { cwd: rootDir }
         );
-        console.log("Restart stdout:", restartStdout);
-      } catch (restartError) {
-        // If container doesn't exist or all tools disabled, this is expected
-        console.log("Container restart failed (might be expected if all tools disabled):", restartError.message);
+        console.log("Down stdout:", downStdout);
+      } catch (downError) {
+        // Container might not exist, that's okay
+        console.log("Down failed (might be expected):", downError.message);
+      }
+      
+      // Then, start with new environment variables (if any tools still enabled)
+      try {
+        const { stdout: upStdout } = await execAsync(
+          "docker compose --env-file .env -f generated/stackvo.yml -f generated/docker-compose.dynamic.yml --profile tools up -d stackvo-tools 2>&1",
+          { cwd: rootDir }
+        );
+        console.log("Up stdout:", upStdout);
+      } catch (upError) {
+        // If all tools disabled, this is expected
+        console.log("Up failed (might be expected if all tools disabled):", upError.message);
       }
 
       // 5. Clear cache
