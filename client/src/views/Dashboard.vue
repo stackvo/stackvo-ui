@@ -101,40 +101,6 @@
           </v-card-text>
         </v-card>
       </v-col>
-
-      <!-- 4. Tools -->
-      <v-col cols="12" md="3">
-        <v-card
-          rounded="0"
-          elevation="1"
-          hover
-          class="cursor-pointer"
-          @click="!loading && $router.push('/tools')"
-        >
-          <v-card-text style="min-height: 100px">
-            <v-skeleton-loader
-              v-if="loading"
-              type="paragraph"
-              height="88"
-            ></v-skeleton-loader>
-            <div v-else class="d-flex align-center">
-              <v-icon color="info" size="48" class="mr-4">mdi-tools</v-icon>
-              <div class="flex-grow-1">
-                <div class="text-h4">{{ toolsStore.toolsCount }}</div>
-                <div class="text-subtitle-1 text-grey">Tools</div>
-                <div class="text-caption text-grey">
-                  <v-icon size="12" color="success">mdi-circle</v-icon>
-                  {{ toolsStore.runningTools.length }} Active
-                  <v-icon size="12" color="grey" class="ml-2"
-                    >mdi-circle</v-icon
-                  >
-                  {{ toolsStore.stoppedTools.length }} Inactive
-                </div>
-              </div>
-            </div>
-          </v-card-text>
-        </v-card>
-      </v-col>
     </v-row>
 
     <!-- Docker Monitoring Section -->
@@ -416,37 +382,32 @@
 import { computed, onMounted, onUnmounted, onActivated, ref } from "vue";
 import { useServicesStore } from "@/stores/services";
 import { useProjectsStore } from "@/stores/projects";
-import { useToolsStore } from "@/stores/tools";
 import { useDockerStore } from "@/stores/docker";
 
 const servicesStore = useServicesStore();
 const projectsStore = useProjectsStore();
-const toolsStore = useToolsStore();
 const dockerStore = useDockerStore();
 
 // Loading state
 const loading = ref(true);
 
-// Total containers (all services + projects + tools)
+// Total containers (all services + projects)
 const totalContainers = computed(
   () =>
     servicesStore.servicesCount +
-    projectsStore.projectsCount +
-    toolsStore.toolsCount
+    projectsStore.projectsCount
 );
 
 const totalRunning = computed(
   () =>
     servicesStore.runningServices.length +
-    projectsStore.runningProjects.length +
-    toolsStore.runningTools.length
+    projectsStore.runningProjects.length
 );
 
 const totalStopped = computed(
   () =>
     servicesStore.stoppedServices.length +
-    projectsStore.stoppedProjects.length +
-    toolsStore.stoppedTools.length
+    projectsStore.stoppedProjects.length
 );
 
 // Auto-refresh interval
@@ -458,7 +419,6 @@ onMounted(async () => {
     await Promise.all([
       servicesStore.loadServices(),
       projectsStore.loadProjects(),
-      toolsStore.loadTools(),
       dockerStore.loadStats(),
     ]);
   } finally {
@@ -480,7 +440,6 @@ onActivated(async () => {
     await Promise.all([
       servicesStore.loadServices(),
       projectsStore.loadProjects(),
-      toolsStore.loadTools(),
       dockerStore.loadStats(),
     ]);
   } finally {
