@@ -116,13 +116,6 @@
           @click="navigateTo('services')"
         ></v-list-item>
 
-        <v-list-item 
-          prepend-icon="mdi-tools" 
-          title="Tools" 
-          :active="currentTab === 'tools'"
-          @click="navigateTo('tools')"
-        ></v-list-item>
-
         <v-divider class="my-2"></v-divider>
 
         <v-list-subheader>SYSTEM STATUS</v-list-subheader>
@@ -308,7 +301,6 @@ const currentTab = computed(() => {
   if (path === '/') return 'dashboard';
   if (path.startsWith('/projects')) return 'projects';
   if (path.startsWith('/services')) return 'services';
-  if (path.startsWith('/tools')) return 'tools';
   return 'dashboard';
 });
 
@@ -317,8 +309,7 @@ function navigateTo(tab) {
   const routes = {
     'dashboard': '/',
     'projects': '/projects',
-    'services': '/services',
-    'tools': '/tools'
+    'services': '/services'
   };
   router.push(routes[tab] || '/');
 }

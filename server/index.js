@@ -13,7 +13,6 @@ import servicesRouter from './routes/services.js';
 import projectsRouter from './routes/projects.js';
 import dockerRouter from './routes/docker.js';
 import envRouter from './routes/env.js';
-import toolsRouter from './routes/tools.js';
 import terminalRouter from './routes/terminal.js';
 import supportedLanguagesRouter from './routes/supported-languages.js';
 import startWithProfileRouter from './routes/start-with-profile.js';
@@ -58,7 +57,6 @@ app.use('/api/services', servicesRouter);
 app.use('/api/projects', projectsRouter);
 app.use('/api/docker', dockerRouter);
 app.use('/api/env', envRouter);
-app.use('/api/tools', toolsRouter);
 app.use('/api/terminal', terminalRouter);
 app.use('/api/supported-languages', supportedLanguagesRouter);
 app.use('/api/start-with-profile', startWithProfileRouter);
@@ -78,7 +76,7 @@ app.set('dockerService', dockerService);
 if (process.env.NODE_ENV === 'production') {
   const distPath = path.join(__dirname, '../dist');
   app.use(express.static(distPath));
-  
+
   app.get('*', (req, res) => {
     res.sendFile(path.join(distPath, 'index.html'));
   });
@@ -86,7 +84,7 @@ if (process.env.NODE_ENV === 'production') {
 
 // Health check
 app.get('/health', (req, res) => {
-  res.json({ 
+  res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),

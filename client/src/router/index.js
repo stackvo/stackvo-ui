@@ -21,11 +21,6 @@ const routes = [
     component: Projects
   },
   {
-    path: '/tools',
-    name: 'Tools',
-    component: () => import('../views/Tools.vue')
-  },
-  {
     path: '/settings',
     name: 'Settings',
     component: Settings
