@@ -247,18 +247,38 @@ class ProjectService {
       throw new Error(`Project "${projectName}" does not exist`);
     }
 
-    // Build and start container (buildContainer does both)
-    const buildResult = await this.docker.buildContainer(projectName);
-    
-    if (!buildResult.success) {
-      throw new Error(buildResult.message);
-    }
+    try {
+      // 1. Run generate command to update Dockerfile
+      // Use STACKVO_ROOT environment variable or fallback to relative path
+      const rootDir = process.env.STACKVO_ROOT || path.join(process.cwd(), '..', '..');
+      const cliScript = path.join(rootDir, 'core', 'cli', 'stackvo.sh');
+      console.log(`Running: ${cliScript} generate projects`);
+      
+      const { stdout, stderr } = await execAsync(
+        `${cliScript} generate projects`,
+        { cwd: rootDir }
+      );
 
-    return {
-      success: true,
-      message: buildResult.message,
-      projectName
-    };
+      if (stderr) {
+        console.error('Generate stderr:', stderr);
+      }
+      console.log('Generate stdout:', stdout);
+
+      // 2. Build and start container (buildContainer does both)
+      const buildResult = await this.docker.buildContainer(projectName);
+      
+      if (!buildResult.success) {
+        throw new Error(buildResult.message);
+      }
+
+      return {
+        success: true,
+        message: buildResult.message,
+        projectName
+      };
+    } catch (error) {
+      throw new Error(`Failed to build project: ${error.message}`);
+    }
   }
 
   /**
