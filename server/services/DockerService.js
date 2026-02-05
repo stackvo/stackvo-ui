@@ -664,11 +664,12 @@ class DockerService {
         });
       }
 
-      // STEP 2: Build with streaming output
+      // STEP 2: Build with streaming output (--no-cache to ensure fresh build)
       const buildProcess = spawn("docker-compose", [
         "-f",
         composeFile,
         "build",
+        "--no-cache",  // Force fresh build to install new extensions
         projectName,
       ]);
 
