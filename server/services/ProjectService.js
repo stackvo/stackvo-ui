@@ -16,14 +16,15 @@ class ProjectService {
    * @returns {Promise<Object>} Created project info
    */
   async createProject(projectData, io = null) {
-    const { 
-      name, 
-      domain, 
-      runtime, 
-      version, 
-      webserver, 
-      document_root, 
-      extensions 
+    const {
+      name,
+      domain,
+      runtime,
+      version,
+      server,
+      webserver,
+      document_root,
+      extensions
     } = projectData;
 
     // Validate required fields
@@ -54,11 +55,11 @@ class ProjectService {
       // 1. Create project directory
       await fs.mkdir(projectPath, { recursive: true });
 
-      // 2. Create stackvo.json
+      // 2. Create stackvo.json (uses "server" field, not legacy "webserver")
       const config = {
         name,
         domain: domain || `${name}.loc`,
-        webserver: webserver || 'nginx',
+        server: server || webserver || 'nginx',
         document_root: document_root || 'public'
       };
 
@@ -217,7 +218,7 @@ class ProjectService {
         path: `projects/${name}`,
         runtime,
         version,
-        webserver: config.webserver
+        server: config.server
       };
     } catch (error) {
       // Cleanup on error

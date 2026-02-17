@@ -112,8 +112,8 @@
           PHP {{ item.php?.version || "N/A" }}
         </template>
 
-        <template v-slot:item.webserver="{ item }">
-          {{ item.webserver }}
+        <template v-slot:item.server="{ item }">
+          {{ item.server }}
         </template>
 
         <template v-slot:item.configuration="{ item }">
@@ -457,9 +457,9 @@
                         </v-col>
                         <v-col cols="6">
                           <v-list density="compact" class="bg-transparent">
-                            <v-list-item v-if="item.webserver">
+                            <v-list-item v-if="item.server">
                               <v-list-item-title class="text-caption text-grey"
-                                >Web Server</v-list-item-title
+                                >Server</v-list-item-title
                               >
                               <v-list-item-subtitle
                                 class="text-body-2 font-weight-bold"
@@ -470,7 +470,7 @@
                                   color="info"
                                 >
                                   <v-icon start size="small">mdi-server</v-icon>
-                                  {{ item.webserver }}
+                                  {{ item.server }}
                                 </v-chip>
                               </v-list-item-subtitle>
                             </v-list-item>
@@ -950,7 +950,7 @@ const projectHeaders = [
   { title: "Project", key: "name", sortable: true, align: "left" },
   { title: "Domain", key: "domain", sortable: true, align: "left" },
   { title: "Runtime", key: "runtime", sortable: true, align: "left" },
-  { title: "Server", key: "webserver", sortable: true, align: "left" },
+  { title: "Server", key: "server", sortable: true, align: "left" },
   {
     title: "Configuration",
     key: "configuration",

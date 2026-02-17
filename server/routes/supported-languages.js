@@ -65,12 +65,12 @@ router.get('/', async (req, res) => {
       }
     });
 
-    // Parse webservers
-    const webservers = envVars.SUPPORTED_WEBSERVERS 
-      ? envVars.SUPPORTED_WEBSERVERS.split(',').map(w => w.trim())
+    // Parse servers (with backward compatibility for SUPPORTED_WEBSERVERS)
+    const servers = (envVars.SUPPORTED_SERVERS || envVars.SUPPORTED_WEBSERVERS)
+      ? (envVars.SUPPORTED_SERVERS || envVars.SUPPORTED_WEBSERVERS).split(',').map(w => w.trim())
       : [];
-    const defaultWebserver = envVars.SUPPORTED_WEBSERVERS_DEFAULT 
-      ? envVars.SUPPORTED_WEBSERVERS_DEFAULT.trim()
+    const defaultServer = (envVars.SUPPORTED_SERVERS_DEFAULT || envVars.SUPPORTED_WEBSERVERS_DEFAULT)
+      ? (envVars.SUPPORTED_SERVERS_DEFAULT || envVars.SUPPORTED_WEBSERVERS_DEFAULT).trim()
       : 'nginx';
 
     res.json({
@@ -80,8 +80,11 @@ router.get('/', async (req, res) => {
         versions,
         defaults,
         extensions,
-        webservers,
-        defaultWebserver
+        servers,
+        defaultServer,
+        // Backward compatibility
+        webservers: servers,
+        defaultWebserver: defaultServer
       }
     });
   } catch (error) {

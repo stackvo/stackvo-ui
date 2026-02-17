@@ -95,9 +95,9 @@
 
             <v-col cols="12">
               <v-select
-                v-model="formData.webserver"
-                :items="supportedWebservers"
-                label="Web Server"
+                v-model="formData.server"
+                :items="supportedServers"
+                label="Server"
                 prepend-inner-icon="mdi-server"
                 variant="outlined"
                 hide-details
@@ -162,8 +162,8 @@ const supportedLanguages = ref([]);
 const supportedVersions = ref({});
 const supportedDefaults = ref({});
 const supportedExtensions = ref({});
-const supportedWebservers = ref([]);
-const defaultWebserver = ref('nginx');
+const supportedServers = ref([]);
+const defaultServer = ref('nginx');
 
 const formData = ref({
   name: '',
@@ -171,7 +171,7 @@ const formData = ref({
   document_root: 'public',
   runtime: 'php',
   version: '8.4',
-  webserver: defaultWebserver.value || 'nginx',
+  server: defaultServer.value || 'nginx',
   extensions: []
 });
 
@@ -199,8 +199,8 @@ async function loadSupportedLanguages() {
       supportedVersions.value = data.data.versions;
       supportedDefaults.value = data.data.defaults;
       supportedExtensions.value = data.data.extensions;
-      supportedWebservers.value = data.data.webservers;
-      defaultWebserver.value = data.data.defaultWebserver;
+      supportedServers.value = data.data.servers || data.data.webservers;
+      defaultServer.value = data.data.defaultServer || data.data.defaultWebserver;
 
       // Set default runtime and version
       if (supportedLanguages.value.length > 0) {
@@ -276,7 +276,7 @@ watch(() => props.modelValue, (newVal) => {
       document_root: 'public',
       runtime: defaultRuntime,
       version: supportedDefaults.value[defaultRuntime] || '',
-      webserver: defaultWebserver.value || 'nginx',
+      server: defaultServer.value || 'nginx',
       extensions: defaultRuntime === 'php' && supportedDefaults.value.php_extensions ? supportedDefaults.value.php_extensions : []
     };
     formRef.value?.resetValidation();

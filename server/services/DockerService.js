@@ -254,7 +254,7 @@ class DockerService {
           name: dir,
           domain: null,
           php: null,
-          webserver: null,
+          server: null,
           document_root: null,
           running: false,
           container_exists: false,
@@ -293,13 +293,16 @@ class DockerService {
       };
 
       // Log paths (if project is running and logs directory exists)
-      const webserver = config.webserver || "nginx";
-      const webserverPaths = {
+      // Support both "server" (new) and "webserver" (legacy) field names
+      const server = config.server || config.webserver || "nginx";
+      const serverLogPaths = {
         nginx: "/var/log/nginx",
         apache: "/var/log/apache2",
         caddy: "/var/log/caddy",
+        frankenphp: "/var/log/caddy",
+        swoole: "/var/log",
       };
-      const webLogBase = webserverPaths[webserver] || "/var/log/nginx";
+      const webLogBase = serverLogPaths[server] || "/var/log/nginx";
       const phpLogBase = `/var/log/${projectName}`;
 
       const logs = running
@@ -334,14 +337,15 @@ class DockerService {
             nginx: ["nginx.conf", "default.conf"],
             apache: ["apache.conf", "httpd.conf"],
             caddy: ["Caddyfile"],
+            frankenphp: ["Caddyfile"],
             ferron: ["ferron.yaml", "ferron.conf"],
           };
 
           const configFiles = [];
 
-          // Check webserver-specific configs
-          if (possibleConfigs[webserver]) {
-            for (const configFile of possibleConfigs[webserver]) {
+          // Check server-specific configs
+          if (possibleConfigs[server]) {
+            for (const configFile of possibleConfigs[server]) {
               try {
                 await fs.stat(path.join(stackvoDir, configFile));
                 configFiles.push(configFile);
@@ -402,7 +406,7 @@ class DockerService {
         python: config.python || null,
         ruby: config.ruby || null,
         golang: config.golang || null,
-        webserver: config.webserver || null,
+        server: config.server || config.webserver || null,
         document_root: config.document_root || null,
         running,
         container_exists: containerExists,
